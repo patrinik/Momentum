@@ -149,10 +149,15 @@ server <- function(input, output, session){
     
     single_mdl <- req(input$single_mdl)
     
-    out <- mdls[[sprintf("%s", single_mdl)]]$weight
-    
+    weight <- lapply(names(mdls), function(x){
+      mdls[[sprintf("%s", x)]]$weight
+    })
+    names(weight) <- names(mdls)
+
+    out <- weight[[sprintf("%s", single_mdl)]] 
+     
     df <- out %>% data.frame()
-    df$Date <- date <- index(out)
+    date <- index(out)
     
     p <- plot_ly(type = 'bar', colors = "Dark2")  
     p$elementId <- NULL
@@ -168,9 +173,84 @@ server <- function(input, output, session){
     p %>% 
       layout(xaxis = list(title = ""), yaxis = list(title = "Allocation %"), barmode = 'stack', bargap = 0)
   })
+  
+  
+  output$dd_table_plch <- renderUI({
+
+    selected_mdls <- input$model_choices
+
+    if( !is.null(selected_mdls) ){
+      list(
+        radioButtons("single_mdl_dd", label = NULL,
+                     choices = as.list(selected_mdls), inline = TRUE)
+      )
+    }
+  })
+  
+  output$drawdown <- renderPlotly({
+
+    mdls <<- mom_models()
+
+    tmp <- lapply(names(mdls), function(x){
+      mdls[[sprintf("%s", x)]]$equity
+    })
+
+    equity <- do.call(merge, tmp)
+    names(equity) <- names(mdls)
+
+    dd <- (equity/cummax(equity) - 1) * 100
+
+    df <- dd %>% data.frame()
+    date <- index(dd)
+
+    p <- plot_ly(colors = "Dark2")
+    p$elementId <- NULL
+
+    for( iMOD in 1:length(mdls) ){
+
+      tmp <- df[[sprintf("%s", names(mdls)[iMOD])]]
+
+      p <- add_trace(p, x = date, y = tmp, name = sprintf("%s", names(mdls)[iMOD]),
+                     mode = "lines", type = "scatter", fill = 'tozeroy',
+                     text = round(tmp, 2),  hoverinfo = "x+text+name"
+      )
+    }
+
+    p %>% layout(xaxis = list(title = ""), yaxis = list(title = "Drawdown"))
+
+  })
+  
+  output$dd_summary_tab <- renderTable({
+    
+    mdls <<- mom_models()
+    single_mdl <- req(input$single_mdl_dd)
+    
+    tmp <- lapply(names(mdls), function(x){
+      mdls[[sprintf("%s", x)]]$ret
+    })
+    
+    ret <- do.call(merge, tmp)
+    names(ret) <- names(mdls)
+    
+    out <- ret[,single_mdl]
+    
+    tbl <- table.Drawdowns(out, top = 5)
+    tbl <- tbl %>%
+      mutate(., Depth = round(Depth * 100, 2),
+             From = format(From, "%Y-%m-%d"),
+             Trough = format(Trough, "%Y-%m-%d"),
+             To = format(To, "%Y-%m%-%d"),
+             Length = format(round(Length, 0), nsmall = 0),
+             `To Trough` = format(round(`To Trough`, 0), nsmall = 0),
+             Recovery = format(round(Recovery ,0), nsmall = 0)
+             )
+    tbl
+    
+  }, hover = TRUE, rownames = TRUE) # , width = "100%"
+
+  
 } # END server
 
 ###--------------------------------------------------------------
 # bye bye
-
 

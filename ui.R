@@ -72,13 +72,19 @@ ui <- dashboardPage(
         plotlyOutput("hist_mom")
       ),
       tabBox(
-        tabPanel("Table",
+        tabPanel("Performance summary",
                  tableOutput("summary_tab")
         ),
         tabPanel("Allocation",
                  uiOutput("alloc_plch"),
                  plotlyOutput("allocation")
-        )
+        ),
+        tabPanel("Drawdown",
+                 plotlyOutput("drawdown")
+                 ),
+        tabPanel("Drawdown table",
+                 uiOutput("dd_table_plch"),
+                 tableOutput("dd_summary_tab"))
       )
     )
   )

@@ -5,6 +5,8 @@ require(zoo)
 require(tidyr)
 require(dplyr)
 require(quantmod)
+require(kernlab)
+require(PerformanceAnalytics)
 
 
 source('./functions/functions_sit.R')
